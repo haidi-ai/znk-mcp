@@ -1,0 +1,43 @@
+{
+  "name": "znk-mcp",
+  "version": "0.1.0",
+  "description": "Zero-dependency MCP stdio server exposing ZNKernel-II geometry through 10 tools",
+  "type": "commonjs",
+  "main": "server.cjs",
+  "bin": {
+    "znk-mcp": "server.cjs"
+  },
+  "files": [
+    "server.cjs",
+    "README.md",
+    "LICENSE",
+    "examples/",
+    "test/",
+    "package.json"
+  ],
+  "scripts": {
+    "start": "node server.cjs",
+    "test": "node test/selftest.cjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "znk",
+    "znk-kernel",
+    "cad",
+    "geometry",
+    "stdio",
+    "json-rpc",
+    "cli"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/haidi-ai/znk-mcp"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

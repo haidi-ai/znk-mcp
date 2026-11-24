@@ -1,0 +1,11 @@
+node_modules/
+znk_exports/
+examples/out/
+dist/
+*.zip
+*.sha256
+*.log
+*.lic
+.env
+.env.*
+REVOKE*.txt

@@ -1,0 +1,3 @@
+{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"znk_create","arguments":{"primitive":"box","params":{"lo":[0,0,0],"hi":[10,20,30]},"tessellate":true}}}
+{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"znk_describe","arguments":{"solid":{"kind":"primitive","primitive":"box","params":{"lo":[0,0,0],"hi":[10,20,30]}},"tessellate":true}}}
+{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"znk_adjudicate","arguments":{"solid":{"kind":"primitive","primitive":"box","params":{"lo":[0,0,0],"hi":[10,20,30]}}}}}

@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Read the README first
+    url: https://github.com/haidi-ai/znk-mcp#readme
+    about: Install steps, environment variables, MCP client config, the 10 tools, and error codes.
+  - name: Licensing, commercial use, and kernel access
+    url: https://github.com/haidi-ai/znk-mcp#13-license-and-publication-status
+    about: znk-mcp itself is MIT. The ZNGL engine and ZNKernel-II kernel are separate commercial products.
+  - name: Model Context Protocol specification
+    url: https://modelcontextprotocol.io
+    about: Protocol-level questions that are not specific to znk-mcp.

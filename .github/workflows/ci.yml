@@ -1,0 +1,78 @@
+# znk-mcp CI
+#
+# Scope: syntax + offline checks only. CI does NOT prove kernel round-trips.
+#
+# `node test/selftest.cjs` spawns server.cjs and drives a real
+# create -> describe -> adjudicate round-trip through the ZNKernel-II
+# `znk2_cli` executable and a valid license. Hosted runners have neither,
+# so that step is gated and skipped here. Run it locally with ZNK2_CLI and
+# ZNK2_LICENSE_FILE set before you open a pull request.
+
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  syntax:
+    name: Node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [ 18, 20, 22 ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js ${{ matrix.node }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Show runtime versions
+        run: |
+          node --version
+          npm --version
+
+      - name: Install (package declares zero dependencies)
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci --ignore-scripts
+          else
+            echo "No package-lock.json: package.json declares no dependencies, npm ci skipped."
+          fi
+
+      - name: Syntax check server.cjs
+        run: node --check server.cjs
+
+      - name: Syntax check test/selftest.cjs
+        run: node --check test/selftest.cjs
+
+      - name: Self-test (needs kernel; skipped in CI)
+        # Hosted runners have no ZNK2_CLI/ZNK2_LICENSE_FILE. Set a repository
+        # variable RUN_KERNEL_SELFTEST=true on a self-hosted kernel runner to
+        # enable this step.
+        if: ${{ vars.RUN_KERNEL_SELFTEST == 'true' }}
+        env:
+          ZNK2_CLI: ${{ vars.ZNK2_CLI }}
+          ZNK2_LICENSE_FILE: ${{ secrets.ZNK2_LICENSE_FILE }}
+        run: node test/selftest.cjs
+
+      - name: CI scope note
+        if: always()
+        run: |
+          {
+            echo "### CI scope"
+            echo ""
+            echo "- Syntax checks (\`node --check\`) on Node 18/20/22."
+            echo "- Offline only: no ZNKernel-II kernel, no license, no geometry round-trips."
+            echo "- \`node test/selftest.cjs\` is skipped on hosted runners;"
+            echo "  run it locally with \`ZNK2_CLI\` and \`ZNK2_LICENSE_FILE\` set."
+          } >> "$GITHUB_STEP_SUMMARY"

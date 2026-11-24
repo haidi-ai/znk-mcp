@@ -1,0 +1,72 @@
+name: Feature request
+description: Propose a new tool, option, document section, or behaviour change
+title: "[feature] "
+labels: [ "enhancement" ]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        `znk-mcp` deliberately stays a **thin, zero-dependency wrapper** around
+        the ZNKernel-II `znk2_cli`. Features that belong in the kernel, the
+        ZNGL engine, or a separate package are usually out of scope here.
+        Please explain why the change belongs in this repository.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What can't you do today, and who is affected?
+      placeholder: "I want to ..., but the server only exposes ..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: The concrete change — new tool/argument, output shape, or README section. Include a sketch if useful.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Workarounds you tried, or why an existing tool does not fit.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - "Tools (znk_*)"
+        - "Protocol / JSON-RPC surface"
+        - "CLI / environment variables"
+        - "Documentation"
+        - "Tests / CI"
+        - "Packaging / distribution"
+        - "Other"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: kernel-bound
+    attributes:
+      label: Does this require the ZNKernel-II kernel?
+      description: Geometry work needs `znk2_cli` and a license; docs/CLI work does not.
+      options:
+        - "Yes — needs kernel or license changes"
+        - "No — wrapper/docs only"
+        - "Not sure"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues and the README for this request.
+          required: true
+        - label: I did not include license keys, customer data, or private paths.
+          required: true

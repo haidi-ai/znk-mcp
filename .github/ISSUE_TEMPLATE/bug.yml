@@ -1,0 +1,112 @@
+name: Bug report
+description: Something in znk-mcp does not work as documented
+title: "[bug] "
+labels: [ "bug" ]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. `znk-mcp` is a thin MCP stdio wrapper around the
+        ZNKernel-II `znk2_cli` executable.
+
+        **Before filing:** run `node --check server.cjs` and, with `ZNK2_CLI`
+        and `ZNK2_LICENSE_FILE` set, `node test/selftest.cjs`. Mention the
+        result below.
+
+        **Never paste** license files, keys, customer drawings, or private
+        paths. Redact secrets from logs and JSON-RPC payloads.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: The actual behaviour, including the exact error text or JSON-RPC error code.
+      placeholder: "e.g. tools/call znk_create returns -32603 with CLI error 1004"
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+      description: The behaviour described in the README, or what a working setup does.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: |
+        Commands, MCP client config (redacted), and the JSON-RPC request/response.
+        A minimal sequence is more useful than a full log.
+      placeholder: |
+        1. node server.cjs with env ZNK2_CLI=...
+        2. send {"jsonrpc":"2.0","id":1,"method":"tools/call","params":{...}}
+        3. observe ...
+      render: shell
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: znk-mcp version
+      description: Version from `package.json`, the ready line, or `npm view znk-mcp version`.
+      placeholder: "0.1.2"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: node-version
+    attributes:
+      label: Node.js version
+      options:
+        - "18.x"
+        - "20.x"
+        - "22.x"
+        - "24.x"
+        - "other (say which)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - "Windows"
+        - "Linux"
+        - "macOS"
+        - "other (say which)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: kernel
+    attributes:
+      label: Is the ZNKernel-II backend configured?
+      description: The kernel (`znk2_cli`) plus a license is needed for any geometry tool.
+      options:
+        - "Yes — znk2_cli present, valid license"
+        - "No — server-only / offline checks"
+        - "Not sure"
+    validations:
+      required: true
+
+  - type: textarea
+    id: selftest
+    attributes:
+      label: Local self-test result (optional)
+      description: Output of `node test/selftest.cjs`, if you could run it.
+      render: text
+
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Checklist
+      options:
+        - label: I removed license keys, customer data, and private paths from this report.
+          required: true
+        - label: I searched existing issues and the README before filing.
+          required: true

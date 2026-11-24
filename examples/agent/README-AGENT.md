@@ -17,6 +17,7 @@
 | 文件 | 作用 |
 |---|---|
 | `agent.cjs` | 命令行代理（本文件说明的对象） |
+| `demo.ps1` | 30 秒演示脚本（列 10 个工具 → 问一句话 → 指到证据目录） |
 | `prompts/zhihu-agent.md` | 可粘贴到 Coze/公众号的人设 + 工具说明 + 三句 cannot_judge 固定话术 |
 
 ## 三步上手
@@ -87,6 +88,30 @@ node examples/agent/agent.cjs "..." --json --out D:\runs
 | `--json` | 输出结构化结果（含 usage、工具链、guard） |
 | `--strict` | guard 发现违规时退出码 4（适合接 CI） |
 | `--list-tools` | 只列 MCP 工具，不调模型 |
+
+## 30 秒演示（现场/录屏都够用）
+
+```powershell
+$env:DEEPSEEK_API_KEY = "sk-..."      # 只当前进程
+powershell -NoProfile -ExecutionPolicy Bypass -File examples\agent\demo.ps1 -Step D:\jobs\box.step
+```
+
+脚本只做两件事：先 `--list-tools` 证明 MCP 层通了（10 个工具），再问一句
+"这件能不能打？STEP 文件在 …"，最后打印证据目录。手敲也是同样两条命令：
+
+```powershell
+node examples/agent/agent.cjs --list-tools
+node examples/agent/agent.cjs "这件能不能打？STEP 文件在 D:\jobs\box.step"
+```
+
+**截图清单（4 张，发文章/给伙伴时用）：**
+
+1. `--list-tools` 输出：`znk-mcp 0.1.2  tools=10` + 10 行工具名（证明有真工具，不是纯话术）。
+2. 运行后的 `--- rounds=… tools=2 [znk_import -> znk_adjudicate] …` 行（证明链路真跑了内核）。
+3. `--- guard: PASS` 行（证明提示词约束有确定性检查兜底）。
+4. 问报价那次的回答首行 `UNSUPPORTED：报价不在本代理能力范围内…`（证明不报价、转人工）。
+
+截图里不要出现 key、客户件全文或未脱敏的路径。
 
 ## 硬约束 5 条（写死在 `agent.cjs` 的 system prompt 里）
 

@@ -20,8 +20,8 @@ server can use it — including DeepSeek-based clients.
   `znk_export`, `znk_adjudicate`, `znk_adjudicate_rules`, `znk_topology`,
   `znk_capabilities`, `znk_sketch_solve`)
 - Local self-test: `SELFTEST PASS 28/28` on the validation machine
-- Distribution: source + `znk-mcp.zip` + SHA256; npm package **prepared
-  (v0.1.0) but not published** — see §13
+- Distribution: public source repo <https://github.com/haidi-ai/znk-mcp> +
+  `znk-mcp.zip` + SHA256; npm package **published (v0.1.1)** — see §13
 
 ---
 
@@ -456,13 +456,15 @@ proprietary and are licensed separately under the ZNKernel-II EULA.
 This repository is a **source-available tool layer**, not a ZNKernel-II
 distribution. No kernel binary, customer license or key material is included.
 
-**npm status (2026-11-24): prepared, not published.** The package metadata is
-complete (`name` `znk-mcp`, `version` `0.1.0`, `license` `MIT`, `engines.node`
-`>=18`, `bin` `znk-mcp -> server.cjs`) and publishing is restricted by a
-`files` whitelist (`server.cjs`, `README.md`, `LICENSE`, `examples/`, `test/`,
+**Publication status (2026-11-24): published.** Public GitHub repository:
+<https://github.com/haidi-ai/znk-mcp> (source, `examples/`, `test/`, `brand/`).
+npm package: **`znk-mcp@0.1.1`**, installed with `npx -y znk-mcp`. The package
+metadata is complete (`name` `znk-mcp`, `license` `MIT`, `engines.node` `>=18`,
+`bin` `znk-mcp -> server.cjs`) and publishing is restricted by a `files`
+whitelist (`server.cjs`, `README.md`, `LICENSE`, `examples/`, `test/`,
 `package.json`). The tarball contains no `dist/`, no `*.lic` and no env files.
 `znk-mcp.zip` is a separate source archive, not the npm tarball.
 
-This repository and `znk-mcp.zip` are **not published to GitHub, npm or any
-public registry**. Publishing requires the owner's explicit authorization;
-do not publish, mirror or redistribute them without it.
+The public repository intentionally excludes kernel binaries, `.lic` files,
+`.zip`/`.tgz` archives and customer evidence; ZNKernel-II itself remains
+proprietary and is licensed separately under the ZNKernel-II EULA.

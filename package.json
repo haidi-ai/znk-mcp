@@ -1,6 +1,6 @@
 {
   "name": "znk-mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Zero-dependency MCP stdio server exposing ZNKernel-II geometry through 10 tools",
   "type": "commonjs",
   "main": "server.cjs",

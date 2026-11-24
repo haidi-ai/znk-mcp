@@ -21,7 +21,7 @@ server can use it — including DeepSeek-based clients.
   `znk_capabilities`, `znk_sketch_solve`)
 - Local self-test: `SELFTEST PASS 28/28` on the validation machine
 - Distribution: public source repo <https://github.com/haidi-ai/znk-mcp> +
-  `znk-mcp.zip` + SHA256; npm package **published (v0.1.1)** — see §13
+  `znk-mcp.zip` + SHA256; npm package **published (v0.1.2)** — see §13
 
 ---
 
@@ -458,7 +458,7 @@ distribution. No kernel binary, customer license or key material is included.
 
 **Publication status (2026-11-24): published.** Public GitHub repository:
 <https://github.com/haidi-ai/znk-mcp> (source, `examples/`, `test/`, `brand/`).
-npm package: **`znk-mcp@0.1.1`**, installed with `npx -y znk-mcp`. The package
+npm package: **`znk-mcp@0.1.2`**, installed with `npx -y znk-mcp`. The package
 metadata is complete (`name` `znk-mcp`, `license` `MIT`, `engines.node` `>=18`,
 `bin` `znk-mcp -> server.cjs`) and publishing is restricted by a `files`
 whitelist (`server.cjs`, `README.md`, `LICENSE`, `examples/`, `test/`,

@@ -26,7 +26,25 @@ const readline = require('node:readline');
 // identity / protocol
 // ---------------------------------------------------------------------------
 const SERVER_NAME = 'znk-mcp';
-const SERVER_VERSION = '0.1.0';
+
+// The reported serverInfo.version is read from package.json so it can never
+// drift from the published package version again (T-0808). If the manifest is
+// unreadable the server still starts, but says so instead of inventing a
+// version number.
+function readPackageVersion() {
+  try {
+    const raw = fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8');
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed.version === 'string' && parsed.version.trim() !== '') {
+      return parsed.version.trim();
+    }
+  } catch {
+    /* fall through to the honest placeholder below */
+  }
+  return '0.0.0-unknown';
+}
+
+const SERVER_VERSION = readPackageVersion();
 const LATEST_PROTOCOL_VERSION = '2025-11-25';
 const SUPPORTED_PROTOCOL_VERSIONS = [
   '2025-11-25',

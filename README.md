@@ -6,7 +6,7 @@ server can use it — including DeepSeek-based clients.
 
 > **This is a tool layer, not a DeepSeek official plugin.**
 > It is also **not** a DSH/Cordis plugin, **not** an official Anthropic MCP
-> server, and (as of 2026-11-24) **not yet published** as an npm package. It is
+> server, and (as of 2026-11-24) **published as the npm package `znk-mcp@0.1.2`**. It is
 > a single `server.cjs` that speaks the Model Context Protocol over
 > stdin/stdout and shells out to the official `znk2_cli` executable. No license
 > key is embedded; the license is read only from the environment.
@@ -21,15 +21,14 @@ server can use it — including DeepSeek-based clients.
   `znk_capabilities`, `znk_sketch_solve`)
 - Local self-test: `SELFTEST PASS 28/28` on the validation machine
 - Distribution: public source repo <https://github.com/haidi-ai/znk-mcp> +
-  `znk-mcp.zip` + SHA256; npm package **published (v0.1.2)** — see §13
+  `znk-mcp.zip` + SHA256; npm package **published as `znk-mcp@0.1.2`** (install with `npx -y znk-mcp`) — see §13
 
 ---
 
 ## Quickstart (English)
 
-The package is **publish-ready but not published yet** (2026-11-24). Anything
-marked *after publication* below fails with `E404` until the owner publishes
-it, so use the source checkout for now.
+The package is **published as `znk-mcp@0.1.2`** (2026-11-24). Install it with
+`npx -y znk-mcp`; the source checkout route below also works.
 
 ### A. Source checkout (works today)
 
@@ -40,10 +39,10 @@ node --version            # must be >= 18
 node test/selftest.cjs    # set ZNK2_CLI / ZNK2_LICENSE_FILE first
 ```
 
-### B. After publication (not available yet)
+### B. npm package (published as `v0.1.2`)
 
 ```bash
-# works only AFTER the package is published to npm
+# published on npm as znk-mcp@0.1.2
 npx -y znk-mcp
 ```
 
@@ -77,9 +76,8 @@ node test/selftest.cjs  # after the environment variables below are set
 ```
 
 There is **no `npm install` step**. `package.json` exists for metadata and
-scripts only; it declares no dependencies. After publication,
-`npx -y znk-mcp` starts the same server without a clone; before publication
-the clone above is the only install path.
+scripts only; it declares no dependencies. The published package starts with
+`npx -y znk-mcp` without a clone; the source checkout route above also works.
 
 You also need a ZNKernel-II distribution containing `znk2_cli` (Windows:
 `znk2_cli.exe`) and a valid customer license. The ZNKernel-II kernel is
@@ -434,7 +432,8 @@ znk-mcp/
 ## 12. Release artifact
 
 The packaged artifact is `znk-mcp.zip` with `znk-mcp.zip.sha256` next to it.
-It is **not** published to GitHub, npm or any public registry. Verify with:
+The zip source archive itself is **not** published to npm; the npm package is
+**`znk-mcp@0.1.2`** (see §13). Verify the zip with:
 
 ```powershell
 Get-FileHash .\znk-mcp.zip -Algorithm SHA256
@@ -456,7 +455,7 @@ proprietary and are licensed separately under the ZNKernel-II EULA.
 This repository is a **source-available tool layer**, not a ZNKernel-II
 distribution. No kernel binary, customer license or key material is included.
 
-**Publication status (2026-11-24): published.** Public GitHub repository:
+**Publication status (2026-11-24): published as `znk-mcp@0.1.2`.** Public GitHub repository:
 <https://github.com/haidi-ai/znk-mcp> (source, `examples/`, `test/`, `brand/`).
 npm package: **`znk-mcp@0.1.2`**, installed with `npx -y znk-mcp`. The package
 metadata is complete (`name` `znk-mcp`, `license` `MIT`, `engines.node` `>=18`,

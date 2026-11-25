@@ -1,60 +1,54 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/haidi-ai/znk-mcp/main/brand/logo-400x400.png" width="120" alt="znk-mcp logo">
+</p>
+
 # znk-mcp
 
 A **zero-dependency Node.js MCP server** (stdio, JSON-RPC 2.0) that exposes
-ZNKernel-II geometry through 10 tools. Any MCP client that can spawn a stdio
-server can use it — including DeepSeek-based clients.
+ZNKernel-II geometry as **three-valued manufacturability verdicts**:
+`allow` / `reject` / `cannot_judge`. Every verdict carries the rule id, rule
+version and the input file hash, so a result can be re-checked instead of taken
+on faith.
 
-> **This is a tool layer, not a DeepSeek official plugin.**
-> It is also **not** a DSH/Cordis plugin, **not** an official Anthropic MCP
-> server, and (as of 2026-11-24) **published as the npm package `znk-mcp@0.1.2`**. It is
-> a single `server.cjs` that speaks the Model Context Protocol over
-> stdin/stdout and shells out to the official `znk2_cli` executable. No license
-> key is embedded; the license is read only from the environment.
+- **Try it with no license: `ZNK_DEMO=1` replays 3 recorded samples** (§2).
+- Full geometry and adjudication need a ZNKernel-II installation + a customer
+  license (§3); the kernel is proprietary and is not bundled here.
+- Runtime: Node.js >= 18 (validated with Node v24.19.0) · **no dependencies**
+- Transport: newline-delimited JSON-RPC 2.0 on stdin/stdout · **no network socket**
+- Tools: **10** · Current version: **`znk-mcp@0.1.3`**
+- Repo: <https://github.com/haidi-ai/znk-mcp> · npm: <https://www.npmjs.com/package/znk-mcp>
 
-- Runtime: Node.js >= 18 (validated with Node v24.19.0)
-- Backend: ZNKernel-II 2.28.1 `znk2_cli`
-- Dependencies: **none** (Node built-ins only: `child_process`, `fs`, `os`,
-  `path`, `readline`, `crypto`)
-- Transport: newline-delimited JSON-RPC 2.0 on stdin/stdout
-- Tools: **10** (`znk_create`, `znk_boolean`, `znk_describe`, `znk_import`,
-  `znk_export`, `znk_adjudicate`, `znk_adjudicate_rules`, `znk_topology`,
-  `znk_capabilities`, `znk_sketch_solve`)
-- Local self-test: `SELFTEST PASS 28/28` on the validation machine
-- Distribution: public source repo <https://github.com/haidi-ai/znk-mcp> +
-  `znk-mcp.zip` + SHA256; npm package **published as `znk-mcp@0.1.2`** (install with `npx -y znk-mcp`) — see §13
+> This is a tool layer, not an official DeepSeek plugin, not a DSH/Cordis
+> plugin, and not an official Anthropic MCP server. It is a single
+> `server.cjs` that speaks MCP over stdio and shells out to the official
+> `znk2_cli` executable.
 
 ---
 
-## Quickstart (English)
+## 1. Install
 
-The package is **published as `znk-mcp@0.1.2`** (2026-11-24). Install it with
-`npx -y znk-mcp`; the source checkout route below also works.
-
-### A. Source checkout (works today)
+Requirement: Node.js >= 18.
 
 ```bash
-git clone <this-repository-url> znk-mcp
-cd znk-mcp
-node --version            # must be >= 18
-node test/selftest.cjs    # set ZNK2_CLI / ZNK2_LICENSE_FILE first
+# demo mode: no license, no kernel binary — 3 recorded samples
+ZNK_DEMO=1 npx -y znk-mcp@0.1.3
+
+# full mode: point at a ZNKernel-II distribution and your license
+npx -y znk-mcp@0.1.3
 ```
 
-### B. npm package (published as `v0.1.2`)
+Use the explicit version (`@0.1.3`) until the demo is in the `latest` tag you
+are reading. `npx -y znk-mcp` installs the newest published version; **demo
+mode requires `znk-mcp >= 0.1.3`**.
 
-```bash
-# published on npm as znk-mcp@0.1.2
-npx -y znk-mcp
-```
-
-MCP client entry — identical for both routes; replace `npx` with `node` and
-the argument with the absolute path to `server.cjs` when running from a clone:
+MCP client entry (Claude Desktop, Cursor, DSH MCP settings, custom clients):
 
 ```json
 {
   "mcpServers": {
     "znk": {
       "command": "npx",
-      "args": ["-y", "znk-mcp"],
+      "args": ["-y", "znk-mcp@0.1.3"],
       "env": {
         "ZNK2_CLI": "C:\\path\\to\\znk2_cli.exe",
         "ZNK2_LICENSE_FILE": "C:\\path\\to\\znk2.lic"
@@ -64,28 +58,61 @@ the argument with the absolute path to `server.cjs` when running from a clone:
 }
 ```
 
+macOS/Linux: same shape with the `znk2_cli` path and forward slashes.
+
 ---
 
-## 1. Install
+## 2. Demo mode — `ZNK_DEMO=1` (no license needed)
+
+Demo mode serves **three recorded, self-built samples** and nothing else. It
+does not load the kernel, does not read a `.lic` file and does not accept a user
+file. What it shows is the three-valued contract on real recorded output:
+
+| Sample | Part | allow | reject | cannot_judge |
+| --- | --- | ---: | ---: | ---: |
+| `C01` | 120×120×10 mounting flange, 4×Ø10 through holes + Ø30 centre hole | 10 | 0 | 10 |
+| `C05` | 60×40×20 pipe fitting, Ø20 cavity + Ø12 through hole | 7 | 5 | 8 |
+| `C06` | 50×40×30 closed thin-wall box, 0.8 mm walls | 4 | 7 | 9 |
+
+The rows were produced by the official ZNKernel-II 2.29.1 distribution CLI
+(CLI 1.0.0, protocol `znk2-cli/1`, rule versions 1.0–1.3) and are replayed
+verbatim. `demo.replay: true` in the response says so explicitly.
+
+Pipe two JSON-RPC lines into the server to see it (bash / macOS / Linux):
 
 ```bash
-git clone <this-repository-url> znk-mcp
-cd znk-mcp
-node --version          # >= 18
-node test/selftest.cjs  # after the environment variables below are set
+printf '%s\n' \
+  '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"curl","version":"0"}}}' \
+  '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"znk_adjudicate","arguments":{"sample":"C05"}}}' \
+  | ZNK_DEMO=1 npx -y znk-mcp@0.1.3
 ```
 
-There is **no `npm install` step**. `package.json` exists for metadata and
-scripts only; it declares no dependencies. The published package starts with
-`npx -y znk-mcp` without a clone; the source checkout route above also works.
+PowerShell:
 
-You also need a ZNKernel-II distribution containing `znk2_cli` (Windows:
-`znk2_cli.exe`) and a valid customer license. The ZNKernel-II kernel is
-proprietary and is **not** bundled here.
+```powershell
+$env:ZNK_DEMO = '1'
+$req = @(
+  '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"pwsh","version":"0"}}}'
+  '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"znk_adjudicate","arguments":{"sample":"C01"}}}'
+) -join "`n"
+$req | npx -y znk-mcp@0.1.3
+```
+
+Demo-mode surface:
+
+- `znk_capabilities` → the 3 samples and their summaries.
+- `znk_adjudicate {"sample":"C01"|"C05"|"C06"}` → the recorded verdict rows.
+- `znk_adjudicate_rules` → the rule ids present in the recordings.
+- Every other tool returns `error.code = "DEMO_MODE"` and does not touch the
+  kernel.
+
+Demo mode is free. The sample STEP files and recorded verdicts live in
+[`demo/`](demo/) with their SHA-256 values; no customer part, customer name,
+internal path or license key is included.
 
 ---
 
-## 2. Environment variables
+## 3. Full mode — environment variables
 
 The server never embeds, copies, prints or commits a license. It passes the
 environment it inherited to each `znk2_cli` subprocess.
@@ -96,32 +123,21 @@ environment it inherited to each `znk2_cli` subprocess.
 | `ZNK2_LICENSE_FILE` | yes for kernel operations | Absolute path to the customer `.lic` file. Missing -> CLI error `1004`. |
 | `ZNK2_REVOKE_LIST` | recommended / policy-dependent | Absolute path to the signed revocation list. Missing while revocation checking is required fails closed. |
 | `ZNK2_TIMEOUT_MS` | no | Per-tool timeout in ms, clamped to `1..60000`; default `60000`. |
-| `ZNK2_EXPORT_DIR` | no | Default output directory when `znk_export` has no `path`. Default: `<server cwd>/znk_exports`. |
-| `ZNK2_ALLOWED_ROOTS` | no | Path-delimiter-separated allow-list for import/export paths. Unset = no path restriction. |
+| `ZNK2_EXPORT_DIR` | no | Default output directory when `znk_export` has no `path`. |
+| `ZNK2_ALLOWED_ROOTS` | no | Path-delimiter-separated allow-list for import/export paths. |
+| `ZNK_DEMO` | no | `1` / `true` enables demo mode (§2); leave unset for full mode. |
 
 Do **not** put license contents in the repository, README, chat, logs or MCP
 configuration checked into git. Point `ZNK2_LICENSE_FILE` at a file outside the
 repository and keep that file's ACL restricted.
 
-Example (PowerShell):
-
-```powershell
-$env:ZNK2_CLI          = 'C:\path\to\znk2_cli.exe'
-$env:ZNK2_LICENSE_FILE = 'C:\path\to\znk2.lic'
-$env:ZNK2_REVOKE_LIST  = 'C:\path\to\REVOKE-1.txt'
-node test/selftest.cjs
-```
-
-`znk_capabilities` is the one tool that still answers without a license (its
-`license.status` will be `missing`). Every geometry/adjudication/sketch call
-returns the CLI's `1004` when no license is configured.
+`znk_capabilities` answers without a license (`license.status = missing`);
+every geometry/adjudication/sketch call returns the CLI's `1004` until a license
+is configured.
 
 ---
 
-## 3. MCP client configuration
-
-Generic stdio configuration (Claude Desktop, Cursor, DSH MCP settings, custom
-clients, etc.):
+## 4. MCP client configuration
 
 ```json
 {
@@ -139,29 +155,22 @@ clients, etc.):
 }
 ```
 
-Minimal shape (when the client starts the server from the repository root):
-`{"command":"node","args":["server.cjs"]}`. Absolute paths are safer because
-many clients do not set the server's cwd.
-
 Notes:
 
-- `command: node` works when `node` is on the client's `PATH`; otherwise use
-  the absolute `node.exe` path.
-- On Linux/macOS use the corresponding `znk2_cli` path and forward slashes.
+- `command: node` works when `node` is on the client's `PATH`; otherwise use the
+  absolute `node.exe` path.
 - Relative import/export paths resolve against the **server process cwd**;
   prefer absolute paths in tool arguments.
 - The client must use the MCP **stdio** transport. This server does not open a
   TCP port and does not use HTTP.
 - DSH: add it in the MCP server settings. It is not a Cordis plugin and has no
   `cordis.patch.yml`.
-- DeepSeek: this is not an official DeepSeek plugin; it is a standard MCP
-  server that a DeepSeek-based MCP client can launch.
+- DeepSeek: this is not an official DeepSeek plugin; it is a standard MCP server
+  that a DeepSeek-based MCP client can launch.
 
 ---
 
-## 4. MCP protocol surface
-
-Supported methods:
+## 5. MCP protocol surface
 
 | Method | Result |
 | --- | --- |
@@ -171,30 +180,26 @@ Supported methods:
 | `tools/list` | `{ "tools": [ {name, description, inputSchema}, ... ] }` with exactly 10 tools |
 | `tools/call` | `{ content: [{type:"text", text}], structuredContent, isError }` |
 
-Everything else returns JSON-RPC `-32601` (`Method not found`). Unknown tool
-names return `-32602` (`Invalid params`). Malformed JSON returns `-32700`.
+Everything else returns JSON-RPC `-32601`. Unknown tool names return `-32602`.
+Malformed JSON returns `-32700`.
 
 Protocol-version negotiation: if the client requests one of `2025-11-25`,
 `2025-06-18`, `2025-03-26`, `2024-11-05`, `2024-10-07`, that version is echoed;
-otherwise the server answers with its latest supported version,
-`2025-11-25` (the client must disconnect if it cannot support it).
+otherwise the server answers with its latest supported version `2025-11-25`.
 
 Tool result shape (MCP `CallToolResult`):
 
-- `content[]`: one `text` block containing the pretty-printed JSON envelope.
-  Present because the tools do not declare an `outputSchema`.
-- `structuredContent`: the same JSON envelope as an object, for clients that
-  use structured tool output.
-- `isError`: `true` when the envelope has `ok:false` (CLI or server error),
-  `false` for successful calls — including adjudication rows whose verdict is
-  `cannot_judge` (that is an undecided verdict, not a transport error).
+- `content[]`: one `text` block with the pretty-printed JSON envelope.
+- `structuredContent`: the same envelope as an object.
+- `isError`: `true` only when the envelope has `ok:false` — adjudication rows
+  whose verdict is `cannot_judge` are **not** transport errors.
 
-There are no resources, prompts, sampling, logging, progress or pagination
-features. `tools/list` does not return a `nextCursor`.
+No resources, prompts, sampling, logging, progress or pagination. `tools/list`
+does not return a `nextCursor`.
 
 ---
 
-## 5. Tools
+## 6. Tools
 
 | Tool | What it does | Main arguments |
 | --- | --- | --- |
@@ -203,14 +208,18 @@ features. `tools/list` does not return a `nextCursor`.
 | `znk_describe` | Volume, area, bbox, centroid, topology counts, Euler characteristic, `volume_source`, watertight flag. | `solid`, `tessellate?` |
 | `znk_import` | STEP / IGES / DXF / DWG / STL / OBJ / ZNK import (content-probed); returns a chainable `{kind:"import",file}` recipe. | `path` or `text`, `format?`, `with_mass?` |
 | `znk_export` | STL / OBJ / STEP export, with schema and unit options, round-trip stats, absolute output path. | `solid` or `file`, `format`, `path?`, `binary?`, `chord_tol?`, `angle_tol?`, `schema?`, `length_unit?` |
-| `znk_adjudicate` | Run all 10 manufacturing/quality rules (or one); returns raw `allow`/`reject`/`cannot_judge` rows. | `solid` or `file`, `rule?`, `params?`, `tolerance?`, `otherBodies?`, `otherFiles?` |
-| `znk_adjudicate_rules` | List the 10 built-in rules and the three verdicts. | none |
+| `znk_adjudicate` | Run the kernel's rule registry and return raw `allow`/`reject`/`cannot_judge` rows. Demo mode: `{"sample":"C01"\|"C05"\|"C06"}`. | `solid` or `file`, `rule?`, `params?`, `tolerance?`, `otherBodies?`, `otherFiles?`, `sample?` |
+| `znk_adjudicate_rules` | List the rule ids the server knows and the three verdicts. | none |
 | `znk_topology` | Body-level B-rep counts and validity. Entity-level queries return explicit `1003`. | `solid`, `entity?`, `entity_id?` |
-| `znk_capabilities` | Kernel/CLI version, ABI symbols, implemented/unsupported families, formats, license/protection status, limits. | none |
+| `znk_capabilities` | Kernel/CLI version, ABI symbols, formats, license/protection status, limits. Demo mode lists the samples. | none |
 | `znk_sketch_solve` | 2D sketch constraint solve (single constraint or `solve_system`). | `request`, `batch?` |
 
-Full descriptions and JSON schemas come from `tools/list`; they are derived
-from the ZNKernel-II 2.28.1 CLI contract.
+Full descriptions and JSON schemas come from `tools/list`.
+
+**Rule-count note.** The wrapper's `znk_adjudicate` selector currently lists 10
+rule ids; the ZNKernel-II 2.29.1 registry has 20, which is what the recorded
+demo samples replay. The selector list will be regenerated from the kernel in a
+later release; until then, pass `rule` only for the 10 listed ids.
 
 ### Recipes and chaining
 
@@ -218,36 +227,30 @@ Every geometry-producing tool returns a `recipe` that can be passed back:
 
 ```json
 {"kind":"primitive","primitive":"box","params":{"lo":[0,0,0],"hi":[10,20,30]}}
-{"kind":"boolean","op":"subtract","a":{"kind":"primitive",...},"b":{"kind":"primitive",...}}
+{"kind":"boolean","op":"subtract","a":{"kind":"primitive"},"b":{"kind":"primitive"}}
 {"kind":"import","file":"E:/path/to/part.step","format":"step"}
 ```
 
-A **whole previous tool result** is accepted too: the CLI unwraps
-`recipe` / `result.recipe`, so `znk_describe({solid: <create response>})`
-works. `znk_import` adds the `{kind:"import",file}` recipe itself; the CLI
-returns measurements but no recipe.
+A whole previous tool result is accepted too: the CLI unwraps
+`recipe` / `result.recipe`.
 
 ### Adjudication is three-valued
 
-`znk_adjudicate` forwards the kernel's verdicts verbatim:
-
 - `allow` — the rule passed.
 - `reject` — the rule failed.
-- `cannot_judge` — **undecided**. It is never mapped to `allow`, never counted
-  as a pass, and `policy.cannot_judge` explicitly says
+- `cannot_judge` — **undecided**. Never mapped to `allow`, never counted as a
+  pass; `policy.cannot_judge` says
   `"undecided - NOT an allow; never treat as a pass"`.
 
 The server does not add an `allowed:true` field, does not filter rows and does
-not turn `cannot_judge` into an error. Callers must decide what to do with an
+not turn `cannot_judge` into an error. Callers decide what to do with an
 undecided verdict.
 
 ---
 
-## 6. Error codes
+## 7. Error codes
 
-CLI/kernel codes are passed through **unchanged** in
-`structuredContent.error.code`; the server does not swallow, remap or
-stringify them.
+CLI/kernel codes are passed through unchanged in `structuredContent.error.code`.
 
 | Code | Name | Typical cause |
 | --- | --- | --- |
@@ -285,13 +288,16 @@ stringify them.
 | `9002` | `NotImplemented` | feature not implemented (e.g. sketch batch mode) |
 | `9999` | `InternalError` | internal error |
 
-Server-side synthetic codes (only when the CLI did not produce an envelope):
+Server-side synthetic codes:
 
 | Code | Meaning |
 | --- | --- |
-| `INVALID_ARGUMENT` | the MCP server rejected the tool arguments before calling the CLI |
-| `PATH_NOT_ALLOWED` | path is outside `ZNK2_ALLOWED_ROOTS` |
-| `TIMEOUT` | `znk2_cli` exceeded `ZNK2_TIMEOUT_MS` (<= 60 s) and was killed |
+| `DEMO_MODE` | tool needs the kernel, but the server runs with `ZNK_DEMO=1` |
+| `DEMO_MODE_INPUT` | demo mode received a file/recipe instead of `{"sample":...}` |
+| `DEMO_SAMPLE_MISSING` | a recorded demo sample file is unreadable |
+| `INVALID_ARGUMENT` | arguments rejected before calling the CLI |
+| `PATH_NOT_ALLOWED` | path outside `ZNK2_ALLOWED_ROOTS` |
+| `TIMEOUT` | `znk2_cli` exceeded `ZNK2_TIMEOUT_MS` and was killed |
 | `CLI_NOT_FOUND` | `ZNK2_CLI` cannot be spawned |
 | `CLI_NO_OUTPUT` | CLI exited without stdout |
 | `CLI_BAD_JSON` | CLI stdout was not JSON |
@@ -299,54 +305,41 @@ Server-side synthetic codes (only when the CLI did not produce an envelope):
 | `OUTPUT_TOO_LARGE` | CLI output exceeded 8 MiB |
 | `INTERNAL_ERROR` | unexpected server exception |
 
-JSON-RPC layer: `-32700` parse error, `-32600` invalid request, `-32601`
-method not found, `-32602` invalid params, `-32603` internal error.
+JSON-RPC layer: `-32700`, `-32600`, `-32601`, `-32602`, `-32603`.
 
 ### Timeouts
 
 Each tool call is capped at **60 seconds** (`ZNK2_TIMEOUT_MS`, clamped
 `1..60000`). On expiry the child process is killed and the tool returns
-`isError:true` with `code:"TIMEOUT"` and `timeout_ms`. Long curved booleans or
-large imports may legitimately hit this cap.
+`isError:true` with `code:"TIMEOUT"`.
 
 ---
 
-## 7. Examples
-
-`examples/01-create-describe.jsonl` contains three JSON-RPC calls:
-create -> describe -> adjudicate. From the repository root:
+## 8. Examples
 
 ```bash
-node server.cjs < examples/01-create-describe.jsonl
+node server.cjs < examples/01-create-describe.jsonl   # create -> describe -> adjudicate
+node server.cjs < examples/02-step-import.jsonl      # import -> describe -> export
 ```
 
-`examples/02-step-import.jsonl` imports `examples/sample.step`, describes the
-imported recipe and exports a STEP copy. Run it from the repository root (the
-paths are relative) or replace the paths with absolute ones:
-
-```bash
-node server.cjs < examples/02-step-import.jsonl
-```
-
-These JSONL files omit `initialize` for brevity; a real MCP client always
-sends `initialize` first. You can still pipe them directly because the server
-does not enforce initialization ordering.
+The JSONL files omit `initialize` for brevity; the server does not enforce
+initialization ordering, so piping them directly works.
 
 ---
 
-## 8. Tests
+## 9. Tests
 
 ```bash
 node test/selftest.cjs
 ```
 
 The self-test spawns the server over stdio and asserts 28 conditions:
-initialize/tools list/ping; exactly 10 tools and their names; create volume > 0; boolean subtract reduces that volume;
-describe; 10-rule adjudication with all verdicts in the three-value set and
-`cannot_judge` preserved; rule list; body-level topology; explicit `1003` for
-the unsupported entity-level topology query; capabilities; sketch solve; STL
-export + import recipe; CLI `1003` passthrough for an invalid primitive;
-`-32601` for an unknown method; `-32602` for an unknown tool.
+initialize/tools list/ping; exactly 10 tools and their names; create volume > 0;
+boolean subtract reduces that volume; describe; adjudication with every verdict
+in the three-value set and `cannot_judge` preserved; rule list; body-level
+topology; explicit `1003` for the unsupported entity-level query; capabilities;
+sketch solve; STL export + import recipe; CLI `1003` passthrough for an invalid
+primitive; `-32601` for an unknown method; `-32602` for an unknown tool.
 
 Expected output on a configured machine:
 
@@ -354,66 +347,60 @@ Expected output on a configured machine:
 SELFTEST PASS 28/28
 ```
 
-Optional transcript:
-
-```powershell
-$env:ZNK_MCP_SELFTEST_LOG = 'D:\ai-crew-data\t0750\selftest-transcript.jsonl'
-node test/selftest.cjs
-```
-
-Negative-path behaviour (also verified during release validation):
-`ZNK2_TIMEOUT_MS=1` -> `TIMEOUT`; no `ZNK2_LICENSE_FILE` -> CLI `1004`;
-bad `ZNK2_CLI` -> `CLI_NOT_FOUND`.
+Negative-path behaviour: `ZNK2_TIMEOUT_MS=1` -> `TIMEOUT`; no
+`ZNK2_LICENSE_FILE` -> CLI `1004` (or `DEMO_MODE` when `ZNK_DEMO=1`); bad
+`ZNK2_CLI` -> `CLI_NOT_FOUND`.
 
 ---
 
-## 9. Security and operational limits
+## 10. Security and operational limits
 
-- **No embedded license / key.** License and revocation paths come only from
-  the environment. The server logs only whether they are configured, never
-  their values.
+- **No embedded license / key.** License and revocation paths come only from the
+  environment. The server logs only whether they are configured, never their
+  values.
 - **No network access.** The server never opens a socket; it only spawns the
-  configured CLI.
-- **Path allow-list.** Set `ZNK2_ALLOWED_ROOTS` (path-delimiter separated) to
-  confine import/export paths. Direct paths and nested recipe `file` fields are
-  checked; `PATH_NOT_ALLOWED` is returned before spawning the CLI. Inline text
-  imports are cached under the first allowed root.
+  configured CLI (demo mode does not even do that).
+- **Path allow-list.** `ZNK2_ALLOWED_ROOTS` (path-delimiter separated) confines
+  import/export paths; `PATH_NOT_ALLOWED` is returned before spawning the CLI.
 - **Import text cache.** Inline text imports are written to
-  `<tmp>/znk-mcp-imports/` (or `<first-allowed-root>/.znk-mcp-imports/` when a
-  path allow-list is set); files older than 7 days are removed at startup.
-  The returned import recipe points at that file, so it remains usable for the
-  session.
-- **Serialized CLI calls.** Calls are queued one at a time; the internal
-  license has `max_concurrent=2`, and serial execution avoids spurious
-  concurrent-license failures.
-- **8 MiB output cap** and a 60 s timeout protect the client from runaway
-  kernel calls.
+  `<tmp>/znk-mcp-imports/` (or `<first-allowed-root>/.znk-mcp-imports/`); files
+  older than 7 days are removed at startup.
+- **Serialized CLI calls.** Calls are queued one at a time; serial execution
+  avoids spurious concurrent-license failures.
+- **8 MiB output cap** and a 60 s timeout protect the client from runaway kernel
+  calls.
 - **Proprietary backend.** ZNKernel-II is commercial software; this repository
   ships no kernel binary, no sample license and no key material.
 
 ---
 
-## 10. Known limitations
+## 11. Known limitations
 
-- `znk_topology` is **body-level only**: `znk2_cli` 2.28.1 does not expose
-  `zn2_entity_topology` through its JSON ops, so `entity` / `entity_id`
-  requests return explicit `1003` rather than fabricated adjacency or
-  revision data. Use the DSH ABI plugin if you need entity geometry.
+- **Not a CAD modeler or GUI.** No feature tree, no assemblies, no drawings, no
+  interactive editing.
+- **Not a CAE/FEA solver.** No meshing, structural, thermal or flow analysis.
+- **Not CAM / path planning.** No toolpath, no post-processor, no machine
+  simulation.
+- **Demo mode replays recorded rows.** It is not a fresh computation on your
+  geometry; `demo.replay: true` marks every such response.
+- `znk_topology` is **body-level only**: `znk2_cli` does not expose
+  `zn2_entity_topology` through its JSON ops, so `entity` / `entity_id` requests
+  return explicit `1003` rather than fabricated adjacency or revision data.
 - `znk_sketch_solve` batch mode returns kernel `9002` on the official CLI; use
   the single-constraint or `solve_system` contract.
 - `znk_import` defaults to the fast path: `volume`, `area`, `centroid` and
   `volume_source` are `null`. Set `with_mass:true` to measure them.
-- The CLI's own capability report is authoritative for which boolean families
-  are analytic vs faceted. Curved fallback volumes are approximated; check
-  `volume_source`.
+- Curved fallback volumes are approximated; check `volume_source`.
 - Relative paths resolve against the server process cwd; use absolute paths in
   client calls for reproducibility.
-- No progress notifications, cancellation propagation or streaming; a tool
-  call completes or times out.
+- No progress notifications, cancellation propagation or streaming.
+
+`cannot_judge` is a legitimate undecided outcome, not a pass and not a defect
+of the tool layer.
 
 ---
 
-## 11. Repository layout
+## 12. Repository layout
 
 ```text
 znk-mcp/
@@ -421,6 +408,9 @@ znk-mcp/
   package.json               # metadata + scripts, no dependencies
   README.md
   LICENSE                    # MIT, wrapper layer only (kernel excluded)
+  demo/
+    README.md                # provenance of the recorded samples
+    samples/                 # C01/C05/C06 .step + .verdicts.json (self-built)
   examples/
     01-create-describe.jsonl # create -> describe -> adjudicate
     02-step-import.jsonl     # import -> describe -> export
@@ -429,41 +419,25 @@ znk-mcp/
     selftest.cjs             # 28 assertions, prints SELFTEST PASS n/n
 ```
 
-## 12. Release artifact
-
-The packaged artifact is `znk-mcp.zip` with `znk-mcp.zip.sha256` next to it.
-The zip source archive itself is **not** published to npm; the npm package is
-**`znk-mcp@0.1.2`** (see §13). Verify the zip with:
-
-```powershell
-Get-FileHash .\znk-mcp.zip -Algorithm SHA256
-Get-Content .\znk-mcp.zip.sha256
-```
-
-The SHA256 of the current package is recorded in `znk-mcp.zip.sha256`; the
-release report also records it.
+---
 
 ## 13. License and publication status
 
 `znk-mcp` (the wrapper layer) is licensed under the **MIT License** — see
 [`LICENSE`](LICENSE). The MIT grant covers `server.cjs`, `package.json`,
-`README.md`, `examples/` and `test/` only. It does **not** cover the
+`README.md`, `demo/`, `examples/` and `test/` only. It does **not** cover the
 ZNKernel-II kernel (`znk2_cli`), the ZNGL licensing / activation / revocation
 logic, customer `.lic` files, revocation lists or key material; those remain
 proprietary and are licensed separately under the ZNKernel-II EULA.
 
-This repository is a **source-available tool layer**, not a ZNKernel-II
-distribution. No kernel binary, customer license or key material is included.
+Demo mode is free and needs no license: it replays recorded sample verdicts and
+ships no kernel code. Commercial or production use of the geometry tools
+requires a ZNKernel-II license.
 
-**Publication status (2026-11-24): published as `znk-mcp@0.1.2`.** Public GitHub repository:
-<https://github.com/haidi-ai/znk-mcp> (source, `examples/`, `test/`, `brand/`).
-npm package: **`znk-mcp@0.1.2`**, installed with `npx -y znk-mcp`. The package
-metadata is complete (`name` `znk-mcp`, `license` `MIT`, `engines.node` `>=18`,
-`bin` `znk-mcp -> server.cjs`) and publishing is restricted by a `files`
-whitelist (`server.cjs`, `README.md`, `LICENSE`, `examples/`, `test/`,
-`package.json`). The tarball contains no `dist/`, no `*.lic` and no env files.
-`znk-mcp.zip` is a separate source archive, not the npm tarball.
-
-The public repository intentionally excludes kernel binaries, `.lic` files,
-`.zip`/`.tgz` archives and customer evidence; ZNKernel-II itself remains
-proprietary and is licensed separately under the ZNKernel-II EULA.
+**Publication status (2026-11-25):** `znk-mcp@0.1.3` — adds the license-free
+`ZNK_DEMO=1` demo mode and the `demo/` samples; the tool surface is unchanged
+from `0.1.2`. npm package: **`znk-mcp@0.1.3`**, installed with
+`npx -y znk-mcp@0.1.3`. Public GitHub repository:
+<https://github.com/haidi-ai/znk-mcp>. The npm `files` whitelist is
+`server.cjs`, `README.md`, `LICENSE`, `demo/`, `examples/`, `test/`,
+`package.json`; the tarball contains no `dist/`, no `*.lic` and no env files.

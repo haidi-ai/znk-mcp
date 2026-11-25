@@ -88,6 +88,61 @@ const TIMEOUT_MS = envInt('ZNK2_TIMEOUT_MS', 60_000, 1, 60_000);
 const MAX_OUTPUT_BYTES = 8 * 1024 * 1024; // znk2-cli max_request_bytes mirror
 const MAX_DIAGNOSTIC_BYTES = 16 * 1024;
 
+// ---------------------------------------------------------------------------
+// demo mode (ZNK_DEMO=1)
+// ---------------------------------------------------------------------------
+// Replays three recorded, self-built sample verdicts so that the three-valued
+// contract is visible without a license. Demo mode never spawns znk2_cli,
+// never reads a .lic file and never accepts a user file. The recorded rows come
+// from the official ZNKernel-II 2.29.1 distribution CLI; see demo/README.md.
+const DEMO_MODE = /^(1|true|yes|on)$/i.test(envString('ZNK_DEMO'));
+const DEMO_KEYS = ['C01', 'C05', 'C06'];
+const DEMO_FILES = {
+  C01: 'c01-flange',
+  C05: 'c05-pipe-fitting',
+  C06: 'c06-thin-wall-box',
+};
+const DEMO_DIR = path.join(__dirname, 'demo', 'samples');
+const DEMO_ALLOWED_TOOLS = ['znk_capabilities', 'znk_adjudicate', 'znk_adjudicate_rules'];
+const demoCache = new Map();
+
+function demoSamplePath(key, ext) {
+  return path.join(DEMO_DIR, `${DEMO_FILES[key]}${ext}`);
+}
+
+// Accept "C01", "c01" or "c01-flange"; anything else is not a demo sample.
+function demoKeyFromArg(raw) {
+  if (typeof raw !== 'string') return null;
+  const value = raw.trim().toLowerCase();
+  if (value === '') return null;
+  for (const key of DEMO_KEYS) {
+    if (value === key.toLowerCase()) return key;
+    if (value === DEMO_FILES[key]) return key;
+  }
+  return null;
+}
+
+function loadDemoSample(key) {
+  if (demoCache.has(key)) return demoCache.get(key);
+  try {
+    const parsed = JSON.parse(fs.readFileSync(demoSamplePath(key, '.verdicts.json'), 'utf8'));
+    demoCache.set(key, parsed);
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function demoUnavailable(toolName) {
+  return errorEnvelope(
+    'DEMO_MODE',
+    `znk-mcp is running in demo mode (ZNK_DEMO=1): "${toolName}" needs the ZNKernel-II kernel and a license. ` +
+      'Demo mode only replays three built-in samples. Call znk_capabilities for the sample list, or ' +
+      'znk_adjudicate with {"sample":"C01"|"C05"|"C06"}. Drop ZNK_DEMO and set ZNK2_CLI + ZNK2_LICENSE_FILE for the full tool set.',
+    { mode: 'demo', tools_available: DEMO_ALLOWED_TOOLS },
+  );
+}
+
 function parseRoots(raw) {
   if (!raw) return [];
   return raw
@@ -619,7 +674,51 @@ async function toolExport(args) {
   return runCliQueued(request);
 }
 
+// Replay a recorded adjudication. The envelope keeps the CLI shape so a client
+// does not need a demo-specific code path; the `demo` block says exactly what
+// was and was not executed.
+function demoAdjudicate(args) {
+  const key = demoKeyFromArg(args.sample);
+  if (!key) {
+    const hasGeometry = isObject(args.solid) || (typeof args.file === 'string' && args.file.trim() !== '');
+    return errorEnvelope(
+      'DEMO_MODE_INPUT',
+      hasGeometry
+        ? 'demo mode does not accept a user file or recipe; demo mode only replays the 3 recorded samples, pass {"sample":"C01"|"C05"|"C06"}'
+        : 'demo mode: znk_adjudicate requires {"sample":"C01"|"C05"|"C06"}',
+      { mode: 'demo', samples: DEMO_KEYS },
+    );
+  }
+  const recorded = loadDemoSample(key);
+  if (!recorded || !isObject(recorded.result)) {
+    return errorEnvelope('DEMO_SAMPLE_MISSING', `demo sample ${key} could not be read from package demo/samples`, {
+      sample: key,
+      expected_file: `demo/samples/${DEMO_FILES[key]}.verdicts.json`,
+    });
+  }
+  const result = Object.assign({}, recorded.result, {
+    body: { file: `demo/samples/${DEMO_FILES[key]}.step` },
+  });
+  return {
+    schema: 'znk-mcp/1',
+    ok: true,
+    mode: 'demo',
+    demo: {
+      sample: key,
+      step: `demo/samples/${DEMO_FILES[key]}.step`,
+      replay: true,
+      recorded_kernel_version:
+        result.trace && typeof result.trace.kernelVersion === 'string' ? result.trace.kernelVersion : null,
+      note:
+        'Verbatim replay of a recorded znk2_cli adjudicate run. The kernel is not loaded, no license is read, ' +
+        'and the rows were not re-computed from your input.',
+    },
+    result,
+  };
+}
+
 async function toolAdjudicate(args) {
+  if (DEMO_MODE) return demoAdjudicate(args);
   const request = { op: 'adjudicate' };
   const hasSolid = isObject(args.solid);
   const hasFile = typeof args.file === 'string' && args.file.trim() !== '';
@@ -655,7 +754,46 @@ async function toolAdjudicate(args) {
   return runCliQueued(request);
 }
 
+// Demo rule list: derived from the recorded samples so the ids/rule versions a
+// user sees here match what znk_adjudicate replays.
+function demoRuleList() {
+  const byId = new Map();
+  for (const key of DEMO_KEYS) {
+    const recorded = loadDemoSample(key);
+    const rows = recorded && isObject(recorded.result) && Array.isArray(recorded.result.results)
+      ? recorded.result.results
+      : [];
+    for (const row of rows) {
+      if (!row || typeof row.id !== 'string' || byId.has(row.id)) continue;
+      byId.set(row.id, {
+        id: row.id,
+        namespace: row.namespace,
+        name: row.name,
+        rule_version: row.rule_version,
+        description: row.message,
+        demo_source: key,
+      });
+    }
+  }
+  const rules = Array.from(byId.values());
+  return {
+    schema: 'znk-mcp/1',
+    ok: true,
+    mode: 'demo',
+    demo: {
+      replay: true,
+      note: 'Rule metadata extracted from the 3 recorded demo samples; the kernel registry of the recording has 20 rules.',
+    },
+    result: {
+      count: rules.length,
+      rules,
+      verdicts: ['allow', 'reject', 'cannot_judge'],
+    },
+  };
+}
+
 async function toolAdjudicateRules() {
+  if (DEMO_MODE) return demoRuleList();
   return runCliQueued({ op: 'adjudicate', list_rules: true });
 }
 
@@ -695,6 +833,52 @@ async function toolTopology(args) {
 }
 
 async function toolCapabilities() {
+  if (DEMO_MODE) {
+    const samples = DEMO_KEYS.map((key) => {
+      const recorded = loadDemoSample(key);
+      const result = recorded && isObject(recorded.result) ? recorded.result : null;
+      return {
+        sample: key,
+        id: `${DEMO_FILES[key]}`,
+        step: `demo/samples/${DEMO_FILES[key]}.step`,
+        verdict_summary: result ? result.verdict_summary : null,
+        recorded_kernel_version:
+          result && result.trace && typeof result.trace.kernelVersion === 'string' ? result.trace.kernelVersion : null,
+      };
+    });
+    return {
+      schema: 'znk-mcp/1',
+      ok: true,
+      mode: 'demo',
+      demo: {
+        enabled: true,
+        why:
+          'ZNK_DEMO=1 replays 3 recorded read-only samples so the allow/reject/cannot_judge contract is visible ' +
+          'without a license. The kernel is not loaded, no .lic file is read and no user file is accepted.',
+        samples,
+      },
+      result: {
+        kernel_version: null,
+        kernel_note: 'demo mode does not load znk2_cli; recorded_kernel_version says which kernel produced the rows',
+        cli_version: null,
+        protocol: 'znk-mcp/1',
+        tools: TOOLS.length,
+        primitives: PRIMITIVES,
+        boolean_ops: BOOLEAN_OPS,
+        export_formats: EXPORT_FORMATS,
+        license: {
+          required: false,
+          status: 'demo',
+          note: 'demo replays recorded verdicts; no license key is read, printed or embedded',
+        },
+        limits: [
+          'demo mode: znk_adjudicate only accepts {"sample":"C01"|"C05"|"C06"} (recorded rows)',
+          'demo mode: every geometry-producing tool returns error DEMO_MODE',
+          'unset ZNK_DEMO and set ZNK2_CLI + ZNK2_LICENSE_FILE for the full tool set',
+        ],
+      },
+    };
+  }
   return runCliQueued({ op: 'capabilities' });
 }
 
@@ -802,10 +986,15 @@ const TOOLS = [
   {
     name: 'znk_adjudicate',
     description:
-      'Run the ZNKernel-II rule registry over a solid (10 built-in rules) and return the raw three-valued verdicts: allow | reject | cannot_judge. cannot_judge means UNDECIDED and is never mapped to allow; the response keeps verdict_summary and policy unchanged. Input: solid recipe or file (one of them), optional rule id (omit = all 10), params, tolerance, otherBodies (recipes) and otherFiles (paths, for assembly/interference).',
+      'Run the ZNKernel-II rule registry over a solid (10 built-in rules in this layer) and return the raw three-valued verdicts: allow | reject | cannot_judge. cannot_judge means UNDECIDED and is never mapped to allow; the response keeps verdict_summary and policy unchanged. Input: solid recipe or file (one of them), optional rule id (omit = all 10), params, tolerance, otherBodies (recipes) and otherFiles (paths, for assembly/interference). With ZNK_DEMO=1 pass {"sample":"C01"|"C05"|"C06"} instead to replay one of the 3 recorded samples; no kernel and no license are used in demo mode.',
     inputSchema: {
       type: 'object',
       properties: {
+        sample: {
+          type: 'string',
+          enum: ['C01', 'C05', 'C06'],
+          description: 'demo mode only (ZNK_DEMO=1): replay a recorded sample instead of a solid/file',
+        },
         solid: { ...RECIPE_SCHEMA, description: 'solid recipe or previous tool result' },
         file: { type: 'string', description: 'imported file to adjudicate (alternative to solid)' },
         rule: { type: 'string', enum: RULE_IDS, description: 'one rule id; omit to run all 10' },
@@ -830,7 +1019,7 @@ const TOOLS = [
   {
     name: 'znk_adjudicate_rules',
     description:
-      'List the 10 built-in ZNKernel-II adjudication rules (id, namespace, name, rule_version, description, defaultParams) and the three accepted verdicts. This produces no geometry. Like every kernel operation it requires ZNK2_LICENSE_FILE; a missing license returns CLI error 1004.',
+      'List the ZNKernel-II adjudication rules (id, namespace, name, rule_version, description, defaultParams) and the three accepted verdicts. This produces no geometry. Like every kernel operation it requires ZNK2_LICENSE_FILE; a missing license returns CLI error 1004. Under ZNK_DEMO=1 it instead lists the rules present in the 3 recorded demo samples, with no license.',
     inputSchema: EMPTY_INPUT_SCHEMA,
     handler: toolAdjudicateRules,
   },
@@ -856,7 +1045,7 @@ const TOOLS = [
   {
     name: 'znk_capabilities',
     description:
-      'Report ZNKernel-II capabilities before modeling: kernel/CLI version, ABI symbols, implemented/unsupported feature families, primitives, boolean ops, export formats, tessellation/sketch support, protection and license status, and limits. No geometry. Works without a license (license.status will say missing).',
+      'Report ZNKernel-II capabilities before modeling: kernel/CLI version, ABI symbols, implemented/unsupported feature families, primitives, boolean ops, export formats, tessellation/sketch support, protection and license status, and limits. No geometry. Works without a license (license.status will say missing). Under ZNK_DEMO=1 it lists the 3 recorded demo samples instead of loading the kernel.',
     inputSchema: EMPTY_INPUT_SCHEMA,
     handler: toolCapabilities,
   },
@@ -932,7 +1121,7 @@ async function dispatch(message) {
         capabilities: { tools: { listChanged: false } },
         serverInfo: { name: SERVER_NAME, version: SERVER_VERSION },
         instructions:
-          'ZNKernel-II geometry tool layer. Call znk_capabilities first when unsure. Recipes returned by znk_create/znk_boolean/znk_import are replayable and can be passed to znk_describe/znk_export/znk_adjudicate/znk_topology. Adjudication is three-valued: cannot_judge is UNDECIDED, never an allow. Kernel error codes are passed through unchanged. Requires ZNK2_CLI and ZNK2_LICENSE_FILE in the server environment.',
+          'ZNKernel-II geometry tool layer. Call znk_capabilities first when unsure. Recipes returned by znk_create/znk_boolean/znk_import are replayable and can be passed to znk_describe/znk_export/znk_adjudicate/znk_topology. Adjudication is three-valued: cannot_judge is UNDECIDED, never an allow. Kernel error codes are passed through unchanged. Requires ZNK2_CLI and ZNK2_LICENSE_FILE in the server environment. With ZNK_DEMO=1 the server replays 3 recorded samples for znk_adjudicate ({"sample":"C01"|"C05"|"C06"}) and needs no license.',
       });
     }
     case 'ping':
@@ -961,6 +1150,9 @@ async function dispatch(message) {
       if (args === undefined || args === null) args = {};
       if (!isObject(args)) {
         return jsonRpcError(id, RPC.INVALID_PARAMS, 'tools/call params.arguments must be an object');
+      }
+      if (DEMO_MODE && !DEMO_ALLOWED_TOOLS.includes(tool.name)) {
+        return jsonRpcResult(id, toolResult(demoUnavailable(tool.name)));
       }
       try {
         const envelope = await tool.handler(args);
@@ -1070,12 +1262,20 @@ function main() {
   });
 
   process.stderr.write(
-    `[znk-mcp] ${SERVER_NAME} v${SERVER_VERSION} ready; cli=${CLI_PATH}; timeout_ms=${TIMEOUT_MS}; protocol=${LATEST_PROTOCOL_VERSION}\n`,
+    `[znk-mcp] ${SERVER_NAME} v${SERVER_VERSION} ready; ${
+      DEMO_MODE ? `mode=demo (ZNK_DEMO=1, samples ${DEMO_KEYS.join('/')}, no license used)` : `cli=${CLI_PATH}`
+    }; timeout_ms=${TIMEOUT_MS}; protocol=${LATEST_PROTOCOL_VERSION}\n`,
   );
-  if (!envString('ZNK2_LICENSE_FILE')) {
+  if (DEMO_MODE) {
+    process.stderr.write(
+      '[znk-mcp] demo mode: znk_capabilities / znk_adjudicate / znk_adjudicate_rules replay 3 recorded samples; ' +
+        'all other tools return DEMO_MODE. Unset ZNK_DEMO and set ZNK2_CLI + ZNK2_LICENSE_FILE for the full tool set.\n',
+    );
+  } else if (!envString('ZNK2_LICENSE_FILE')) {
     process.stderr.write(
       '[znk-mcp] warning: ZNK2_LICENSE_FILE is not set; geometry tools will return znk2_cli error 1004. ' +
-        'Set it in the MCP client env; no license is embedded in this server.\n',
+        'Set it in the MCP client env; no license is embedded in this server. For a license-free look at the ' +
+        'three verdicts, run with ZNK_DEMO=1 instead (npx -y znk-mcp@0.1.3).\n',
     );
   }
   if (envString('ZNK2_REVOKE_LIST')) {

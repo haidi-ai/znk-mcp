@@ -17,9 +17,11 @@ ZNKernel-II license.
 - `*.step` is the geometry those verdicts were computed on; its SHA-256 matches
   the `trace.fileShaRaw` field in the corresponding verdicts file.
 - Before recording, `result.body.file` was rewritten to the package-relative
-  path and `trace.licenseId` / `trace.runId` were removed. No license key,
-  customer part, customer name or internal path is included. Demo mode never
-  spawns `znk2_cli` and never reads a `.lic` file.
+  path and `trace.licenseId` / `trace.runId` were removed. **The package contains
+  no `.lic` file and no real license value or machine path**; the only license
+  mentions in the package are documentation placeholders (for example
+  `C:\path\to\znk2.lic`). No customer part or customer name is included. Demo
+  mode never spawns `znk2_cli` and never reads a `.lic` file.
 
 Verdict semantics: `allow` = passed, `reject` = failed, `cannot_judge` =
 **undecided — never a pass**. The demo intentionally shows all three.

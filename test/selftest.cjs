@@ -246,20 +246,33 @@ function main() {
       booleanVolume,
     );
 
-    // 15-17: adjudicate (all 10 rules)
+    // Registry size comes from the kernel itself (never hardcoded to 10):
+    // kernel 2.28.1 exposes 10 rules, 2.29.1 exposes 20.
+    const capabilitiesResponse = await callTool('znk_capabilities', {});
+    const capabilitiesSc = capabilitiesResponse.result && capabilitiesResponse.result.structuredContent;
+    const registryRules =
+      capabilitiesSc &&
+      capabilitiesSc.result &&
+      capabilitiesSc.result.adjudicate &&
+      Array.isArray(capabilitiesSc.result.adjudicate.rules)
+        ? capabilitiesSc.result.adjudicate.rules
+        : null;
+    const registryRuleCount = registryRules ? registryRules.length : null;
+
+    // 15-17: adjudicate (every rule in the kernel registry)
     const adjudicated = await callTool('znk_adjudicate', { solid: recipe });
     const adjudicatedSc = adjudicated.result && adjudicated.result.structuredContent;
     const adjudicatedResult = adjudicatedSc && adjudicatedSc.result;
     const adjudicatedRows = (adjudicatedResult && adjudicatedResult.results) || [];
     check(
-      'znk_adjudicate runs all 10 rules',
-      adjudicatedSc && adjudicatedSc.ok === true && adjudicatedRows.length === 10,
-      `rows=${adjudicatedRows.length}`,
+      'znk_adjudicate runs every rule in the kernel registry',
+      registryRuleCount !== null && adjudicatedSc && adjudicatedSc.ok === true && adjudicatedRows.length === registryRuleCount,
+      `rows=${adjudicatedRows.length} registry=${registryRuleCount}`,
     );
     const verdicts = adjudicatedRows.map((row) => row.verdict);
     check(
       'every adjudication verdict is allow|reject|cannot_judge',
-      verdicts.length === 10 && verdicts.every((verdict) => ['allow', 'reject', 'cannot_judge'].includes(verdict)),
+      registryRuleCount !== null && verdicts.length === registryRuleCount && verdicts.every((verdict) => ['allow', 'reject', 'cannot_judge'].includes(verdict)),
       verdicts.join(','),
     );
     const cannotJudge = verdicts.filter((verdict) => verdict === 'cannot_judge').length;
@@ -278,9 +291,14 @@ function main() {
     const rulesSc = rulesResponse.result && rulesResponse.result.structuredContent;
     const rulesResult = rulesSc && rulesSc.result;
     check(
-      'znk_adjudicate_rules lists 10 rules',
-      rulesSc && rulesSc.ok === true && rulesResult && rulesResult.count === 10 && rulesResult.rules.length === 10,
-      rulesResult && rulesResult.count,
+      `znk_adjudicate_rules lists all ${registryRuleCount === null ? 'registry' : registryRuleCount} rules`,
+      rulesSc &&
+        rulesSc.ok === true &&
+        registryRuleCount !== null &&
+        rulesResult &&
+        rulesResult.count === registryRuleCount &&
+        rulesResult.rules.length === registryRuleCount,
+      rulesResult && `count=${rulesResult.count} registry=${registryRuleCount}`,
     );
     check(
       'znk_adjudicate_rules advertises three verdicts',
@@ -311,17 +329,16 @@ function main() {
       topologyEntitySc && topologyEntitySc.error && topologyEntitySc.error.message,
     );
 
-    // 22: capabilities
-    const capabilitiesResponse = await callTool('znk_capabilities', {});
-    const capabilitiesSc = capabilitiesResponse.result && capabilitiesResponse.result.structuredContent;
+    // 22: capabilities (same response used for the registry lookup above)
     check(
-      'znk_capabilities reports a kernel version',
+      'znk_capabilities reports a kernel version and rule registry',
       capabilitiesSc &&
         capabilitiesSc.ok === true &&
         capabilitiesSc.result &&
         typeof capabilitiesSc.result.kernel_version === 'string' &&
-        capabilitiesSc.result.kernel_version.length > 0,
-      capabilitiesSc && capabilitiesSc.result && capabilitiesSc.result.kernel_version,
+        capabilitiesSc.result.kernel_version.length > 0 &&
+        registryRuleCount !== null,
+      `${capabilitiesSc && capabilitiesSc.result && capabilitiesSc.result.kernel_version} rules=${registryRuleCount}`,
     );
 
     // 23: sketch solve

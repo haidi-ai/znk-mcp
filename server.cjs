@@ -533,6 +533,9 @@ const EMPTY_INPUT_SCHEMA = {
   additionalProperties: false,
 };
 
+// Rule ids from znk2_cli 2.29.1 `capabilities.adjudicate.rules` (20 ids).
+// Older kernels expose a subset (2.28.1: the first 10); the enum is static
+// because tools/list must answer without spawning the kernel.
 const RULE_IDS = [
   'manufacturing/min_wall_thickness',
   'manufacturing/hole_penetration',
@@ -544,6 +547,16 @@ const RULE_IDS = [
   'manufacturing/hole_depth_ratio',
   'manufacturing/sharp_internal_corner',
   'quality/small_feature',
+  'manufacturing/undercut',
+  'manufacturing/min_hole_diameter',
+  'manufacturing/wall_thickness_uniformity',
+  'quality/stress_concentration_corner',
+  'manufacturing/missing_fillet',
+  'manufacturing/bridge_span',
+  'manufacturing/overhang_angle',
+  'manufacturing/step_height_ratio',
+  'manufacturing/residual_wall',
+  'quality/opening_radius',
 ];
 
 const PRIMITIVES = ['box', 'cylinder', 'sphere', 'cone', 'torus'];
@@ -986,7 +999,7 @@ const TOOLS = [
   {
     name: 'znk_adjudicate',
     description:
-      'Run the ZNKernel-II rule registry over a solid (10 built-in rules in this layer) and return the raw three-valued verdicts: allow | reject | cannot_judge. cannot_judge means UNDECIDED and is never mapped to allow; the response keeps verdict_summary and policy unchanged. Input: solid recipe or file (one of them), optional rule id (omit = all 10), params, tolerance, otherBodies (recipes) and otherFiles (paths, for assembly/interference). With ZNK_DEMO=1 pass {"sample":"C01"|"C05"|"C06"} instead to replay one of the 3 recorded samples; no kernel and no license are used in demo mode.',
+      'Run the ZNKernel-II rule registry over a solid (20 rule ids in the 2.29.1 registry; older kernels expose fewer) and return the raw three-valued verdicts: allow | reject | cannot_judge. cannot_judge means UNDECIDED and is never mapped to allow; the response keeps verdict_summary and policy unchanged. Input: solid recipe or file (one of them), optional rule id (omit = run every rule the kernel exposes), params, tolerance, otherBodies (recipes) and otherFiles (paths, for assembly/interference). With ZNK_DEMO=1 pass {"sample":"C01"|"C05"|"C06"} instead to replay one of the 3 recorded samples; no kernel and no license are used in demo mode.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -997,7 +1010,7 @@ const TOOLS = [
         },
         solid: { ...RECIPE_SCHEMA, description: 'solid recipe or previous tool result' },
         file: { type: 'string', description: 'imported file to adjudicate (alternative to solid)' },
-        rule: { type: 'string', enum: RULE_IDS, description: 'one rule id; omit to run all 10' },
+        rule: { type: 'string', enum: RULE_IDS, description: 'one kernel rule id (see znk_adjudicate_rules); omit to run every rule the kernel exposes' },
         params: { type: 'object', description: 'rule parameters (passed to the kernel unchanged)', additionalProperties: true },
         tolerance: { type: 'number', description: 'optional kernel tolerance' },
         otherBodies: {

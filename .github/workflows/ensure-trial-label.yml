@@ -1,0 +1,24 @@
+name: Ensure trial-request label
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/ISSUE_TEMPLATE/trial-request.yml'
+      - '.github/workflows/ensure-trial-label.yml'
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  ensure:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create trial-request label if missing
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh label list --limit 100 | grep -q '^trial-request' || \
+            gh label create trial-request --color 0E8A16 --description "评测试用申请 / trial request"

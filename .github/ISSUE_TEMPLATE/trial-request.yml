@@ -1,7 +1,7 @@
 name: Trial request / 试用申请
 description: 申请 znk-mcp 评测版试用（公司、件型、日均件数、联系方式、试用方式）
 title: "[trial] "
-labels: [ "question" ]
+labels: [ "trial-request" ]
 body:
   - type: markdown
     attributes:

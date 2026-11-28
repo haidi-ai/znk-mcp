@@ -90,6 +90,10 @@ h1 em{font-style:normal;background:linear-gradient(90deg,#8fc4ff,#b79bff 55%,#7f
 .draft{border:1px dashed var(--line);border-radius:10px;padding:12px 14px;background:rgba(255,255,255,.02)}
 .draft-h{font-size:11.5px;color:var(--dim);letter-spacing:.08em;margin-bottom:8px}
 .draft pre{margin:0;font-size:12.5px;line-height:1.7;color:var(--muted);white-space:pre-wrap}
+.copy-hint{font-size:12.5px;color:var(--allow);min-height:1.4em;margin:10px 0 0;line-height:1.5}
+.copy-hint.err{color:var(--rej)}
+.gh-note{font-size:11.5px;color:var(--dim);margin:8px 0 0;line-height:1.55}
+.fallback-mail{user-select:all;-webkit-user-select:all}
 
 /* footer */
 .foot{border-top:1px solid var(--line);padding:44px 0 60px;background:rgba(0,0,0,.18)}
@@ -128,7 +132,7 @@ h1 em{font-style:normal;background:linear-gradient(90deg,#8fc4ff,#b79bff 55%,#7f
       <h1>对平面/圆柱/圆锥/球/环面构成的解析族件，<br><em>给出确定性可制造性判定与可复算证据</em></h1>
       <p class="lead">逐条规则给出 <b class="a">allow</b> / <b class="r">reject</b> / <b class="c">cannot_judge</b>，每条判定都绑定可复算的几何度量与规则版本。</p>
       <div class="cta-row">
-        <a class="btn primary" href="mailto:huishanzhao@126.com?subject=ZNK%20%E8%AF%84%E4%BC%B0%E8%AF%95%E7%94%A8%E7%94%B3%E8%AF%B7&body=%E5%85%AC%E5%8F%B8%EF%BC%9A%0A%E4%BB%B6%E5%9E%8B%EF%BC%88%E5%B9%B3%E9%9D%A2/%E5%9C%86%E6%9F%B1/%E5%9C%86%E9%94%A5/%E7%90%83/%E7%8E%AF%E9%9D%A2%E7%BB%84%E5%90%88%E4%BB%B6%EF%BC%89%EF%BC%9A%0A%E6%97%A5%E5%9D%87%E4%BB%B6%E6%95%B0%EF%BC%9A%0A%E8%81%94%E7%B3%BB%E6%96%B9%E5%BC%8F%EF%BC%9A">申请试用（评估版，限名额）</a>
+        <a class="btn primary" href="#apply">申请试用（评估版，限名额）</a>
         <a class="btn ghost" href="#demo">先看 30 秒演示</a>
       </div>
       <div class="stats">
@@ -790,19 +794,21 @@ else init();
         </ul>
       </div>
       <div class="form">
-        <div class="mail-title">邮件申请 · 一键起草</div>
-        <p class="mail-desc">点击按钮会用本机邮件客户端起草申请信，收件地址已填好；也可直接发到下面这个地址。</p>
-        <a class="btn primary wide" href="mailto:huishanzhao@126.com?subject=ZNK%20%E8%AF%84%E4%BC%B0%E8%AF%95%E7%94%A8%E7%94%B3%E8%AF%B7&body=%E5%85%AC%E5%8F%B8%EF%BC%9A%0A%E4%BB%B6%E5%9E%8B%EF%BC%88%E5%B9%B3%E9%9D%A2/%E5%9C%86%E6%9F%B1/%E5%9C%86%E9%94%A5/%E7%90%83/%E7%8E%AF%E9%9D%A2%E7%BB%84%E5%90%88%E4%BB%B6%EF%BC%89%EF%BC%9A%0A%E6%97%A5%E5%9D%87%E4%BB%B6%E6%95%B0%EF%BC%9A%0A%E8%81%94%E7%B3%BB%E6%96%B9%E5%BC%8F%EF%BC%9A">申请试用（评估版，限名额）</a>
-        <div class="addr">或直接发至 <b class="mono">huishanzhao@126.com</b></div>
+        <div class="mail-title">申请试用 · 不依赖邮件客户端</div>
+        <p class="mail-desc">三种方式任选：复制申请内容后发邮件；或用 GitHub 预填表单；或直接选中下方邮箱。</p>
+        <button type="button" class="btn primary wide" id="copy-apply">复制申请内容</button>
+        <div class="copy-hint" id="copy-hint" role="status" aria-live="polite"></div>
+        <a class="btn ghost wide" id="github-apply" href="https://github.com/haidi-ai/znk-mcp/issues/new?template=trial-request.yml&amp;title=%5B%E8%AF%84%E6%B5%8B%E7%94%B3%E8%AF%B7%5D" target="_blank" rel="noopener noreferrer">用 GitHub 提交申请</a>
+        <p class="gh-note">GitHub 表单需已登录 GitHub 账号（没有账号请用复制或邮箱方式）。</p>
+        <div class="addr">兜底邮箱（可选中复制）：<b class="mono fallback-mail" id="fallback-mail">huishanzhao@126.com</b></div>
         <div class="draft">
-          <div class="draft-h">邮件模板（复制后填写）</div>
-          <pre class="mono">主题：ZNK 评估试用申请
-公司：
+          <div class="draft-h">申请模板（复制后填写）</div>
+          <pre class="mono" id="apply-template">公司：
 件型（平面/圆柱/圆锥/球/环面组合件）：
 日均件数：
 联系方式：</pre>
         </div>
-        <p class="form-note">本页为单文件离线版：不联网、不收集数据；邮件由你的邮件客户端发出。</p>
+        <p class="form-note">若按钮无反应，请直接发邮件到 huishanzhao@126.com。本页为单文件页：除 GitHub 表单链接外无其他外链；页面本身无网络请求、不收集数据、无第三方统计。</p>
       </div>
     </div>
   </section>
@@ -815,7 +821,7 @@ else init();
       <li>评估版：仅用于评估，不承诺适用于通用件；自由曲面 / 扫描网格不在范围内。</li>
       <li><b>cannot_judge 是未判定，不代表通过</b>，也不代表不合格；请由责任工程师复核。</li>
       <li>判定结果不构成法律结论或工程结论，最终以书面评审与责任工程师签署为准。</li>
-      <li>本页为单文件离线页：0 个外链、无网络请求、无第三方统计。</li>
+      <li>本页为单文件页：除 GitHub 申请入口外无其他外链；页面本身无网络请求、无第三方统计。</li>
     </ul>
   </div>
 </footer>
@@ -835,6 +841,48 @@ else init();
       });
     }
   }
+})();
+</script>
+<script>
+/* 申请入口：复制模板，不依赖本机邮件客户端；失败回退 execCommand('copy')。 */
+(function () {
+  var btn = document.getElementById('copy-apply');
+  var hint = document.getElementById('copy-hint');
+  var tpl = document.getElementById('apply-template');
+  if (!btn || !hint || !tpl) return;
+  var TEXT = tpl.textContent.replace(/\s+$/, '') + '\n';
+  function render(ok, msg) {
+    hint.textContent = msg;
+    hint.className = ok ? 'copy-hint' : 'copy-hint err';
+    hint.setAttribute('data-copy-state', ok ? 'ok' : 'err');
+  }
+  function fallbackCopy() {
+    var ta = document.createElement('textarea');
+    ta.value = TEXT;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.top = '0';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    ta.setSelectionRange(0, ta.value.length);
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    return ok;
+  }
+  function done(ok) {
+    if (ok) render(true, '已复制，请发到 huishanzhao@126.com 或直接提交下方表单');
+    else render(false, '复制失败：请手动选中下方模板/邮箱复制，或直接发邮件到 huishanzhao@126.com');
+  }
+  btn.addEventListener('click', function () {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(TEXT).then(function () { done(true); }, function () { done(fallbackCopy()); });
+    } else {
+      done(fallbackCopy());
+    }
+  });
 })();
 </script>
 </body>

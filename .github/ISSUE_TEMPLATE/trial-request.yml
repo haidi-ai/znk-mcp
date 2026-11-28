@@ -1,0 +1,67 @@
+name: Trial request / 试用申请
+description: 申请 znk-mcp 评测版试用（公司、件型、日均件数、联系方式、试用方式）
+title: "[trial] "
+labels: [ "question" ]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        这是**评测版**试用申请入口：评测版**非正式报价**，也不含任何**客户数据**。
+        真实报价与客户专属试点另行处理。This form is for the **evaluation build**
+        only — it is **not a quotation** and involves **no customer data**.
+
+  - type: input
+    id: company
+    attributes:
+      label: 公司名称 / Company
+      description: 申请试用的公司或团队名称。Company or team requesting the trial.
+      placeholder: "例如：某某精密制造有限公司"
+    validations:
+      required: true
+
+  - type: input
+    id: part-type
+    attributes:
+      label: 件型 / Part type
+      description: 计划用 znk-mcp 评估的零件类型（如法兰、管件、薄壁盒、齿轮毛坯）。The part family you plan to evaluate.
+      placeholder: "例如：法兰 / 管件 / 薄壁盒 / 齿轮毛坯"
+    validations:
+      required: true
+
+  - type: input
+    id: daily-volume
+    attributes:
+      label: 日均件数 / Parts per day
+      description: 预计每天需要判定的零件数量，用于评估吞吐。Estimated parts per day.
+      placeholder: "例如：200 件/天"
+    validations:
+      required: true
+
+  - type: input
+    id: contact
+    attributes:
+      label: 联系方式 / Contact
+      description: 邮箱或微信，用于回复试用安排。Email or WeChat for the trial follow-up.
+      placeholder: "name@example.com 或 微信号"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: trial-mode
+    attributes:
+      label: 试用方式 / Trial mode
+      description: 选择希望的试用方式。Pick how you want to try it.
+      options:
+        - "演示模式：ZNK_DEMO=1，三个录制样例，无需许可 / Demo mode (no license)"
+        - "完整模式：ZNKernel-II 内核 + 试用许可 / Full mode (kernel + trial license)"
+        - "不确定，希望先沟通 / Not sure — want to talk first"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: 确认 / Checklist
+      options:
+        - label: 我知道这是评测版、非报价，且未提交任何客户数据或许可密钥。/ I understand this is an evaluation build, not a quote, and I submitted no customer data or license keys.
+          required: true

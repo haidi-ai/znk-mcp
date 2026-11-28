@@ -15,7 +15,7 @@ on faith.
   license (§3); the kernel is proprietary and is not bundled here.
 - Runtime: Node.js >= 18 (validated with Node v24.19.0) · **no dependencies**
 - Transport: newline-delimited JSON-RPC 2.0 on stdin/stdout · **no network socket**
-- Tools: **10** · Current version: **`znk-mcp@0.1.4`**
+- Tools: **10** · npm latest: **`znk-mcp@0.1.4`** · repo source: **`0.1.5`**
 - Repo: <https://github.com/haidi-ai/znk-mcp> · npm: <https://www.npmjs.com/package/znk-mcp>
 
 > This is a tool layer, not an official DeepSeek plugin, not a DSH/Cordis
@@ -441,13 +441,23 @@ Demo mode is free and needs no license: it replays recorded sample verdicts and
 ships no kernel code. Commercial or production use of the geometry tools
 requires a ZNKernel-II license.
 
-**Release status (2026-11-25):** `znk-mcp@0.1.4` is **prepared but not yet
-published** — it corrects the stale self-test pass-count promise, makes the
-self-test follow the kernel registry (10 rules on 2.28.1, 20 on 2.29.1) and
-expands the `znk_adjudicate` rule enum to the 20 ids of the 2.29.1 registry.
-The tool surface is otherwise unchanged from `0.1.3`. Once published, install
-with `npx -y znk-mcp@0.1.4`. Public GitHub repository:
+**Release status (2026-11-28):** `znk-mcp@0.1.4` is **published on npm**
+(`latest`) — it corrects the stale self-test pass-count promise, makes the
+self-test read the rule count from the kernel registry instead of hardcoding
+it (**20 rules** on 2.29.1; the older 2.28.1 kernel exposes 10) and expands the
+`znk_adjudicate` rule enum to the 20 ids of the 2.29.1 registry. The tool
+surface is otherwise unchanged from `0.1.3`; install with
+`npx -y znk-mcp@0.1.4`. The repository source version is `0.1.5` (the `0.1.5`
+npm publish is tracked as a separate release task). Public GitHub repository:
 <https://github.com/haidi-ai/znk-mcp>. The npm `files` whitelist is
 `server.cjs`, `README.md`, `LICENSE`, `demo/`, `examples/`, `test/`,
 `package.json`; the tarball contains no `dist/`, no `*.lic` file and no env
 files.
+
+**Evaluation build / 评测版.** This is an evaluation build for trial and
+evaluation only: it is **not a quotation or a commercial offer** (非报价) and
+contains **no customer data** (不含客户数据). Real quotes and customer-specific
+trials are handled separately. To request a trial, open a **Trial request**
+issue — the form lives in
+[`.github/ISSUE_TEMPLATE/trial-request.yml`](.github/ISSUE_TEMPLATE/trial-request.yml)
+and asks for company, part type, parts per day, contact and trial mode.

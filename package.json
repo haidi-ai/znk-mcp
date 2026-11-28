@@ -1,6 +1,7 @@
 {
   "name": "znk-mcp",
-  "version": "0.1.4",
+  "version": "0.1.5",
+  "mcpName": "io.github.haidi-ai/znk-mcp",
   "description": "Zero-dependency MCP stdio server exposing ZNKernel-II geometry through 10 tools, with a license-free demo mode (ZNK_DEMO=1) replaying 3 recorded samples",
   "type": "commonjs",
   "main": "server.cjs",

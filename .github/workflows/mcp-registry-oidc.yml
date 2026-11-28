@@ -1,0 +1,70 @@
+name: Publish to MCP Registry
+
+# Publish server.json to the official MCP Registry over GitHub Actions OIDC
+# (no PAT, no secret). The interactive `mcp-publisher login github` device
+# flow cannot grant an organization namespace (io.github.haidi-ai/*), but
+# OIDC can: the registry maps the OIDC token's `repository_owner` claim to
+# publish permission on io.github.<owner>/*.
+#
+# Trigger: push to main that touches server.json (first run = this commit;
+# later runs = version bumps or re-pushes of server.json). Deliberately no
+# workflow_dispatch, so no API token is needed to start a run.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - server.json
+
+permissions:
+  contents: read
+  id-token: write # required to mint the GitHub Actions OIDC token
+
+jobs:
+  publish-mcp-registry:
+    runs-on: ubuntu-latest
+    env:
+      MCP_PUBLISHER_VERSION: v1.8.21
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+
+      - name: Preflight - npm package exists and carries mcpName
+        run: |
+          set -euo pipefail
+          ver=$(node -p "require('./server.json').version")
+          echo "server.json version: $ver"
+          mcpname=$(npm view "znk-mcp@$ver" mcpName --json | tr -d '"')
+          echo "npm mcpName: $mcpname"
+          test "$mcpname" = "io.github.haidi-ai/znk-mcp"
+
+      - name: Download mcp-publisher (pinned + SHA256 checked)
+        run: |
+          set -euo pipefail
+          archive="mcp-publisher_linux_amd64.tar.gz"
+          base_url="https://github.com/modelcontextprotocol/registry/releases/download/${MCP_PUBLISHER_VERSION}"
+          curl --fail --location --silent --show-error --output "$archive" "$base_url/$archive"
+          echo "ca2e5b24e8fc2718be4bb58ab086b39b7d60c79840c24b2057bc3f36d6ab2a59  $archive" | sha256sum -c -
+          tar xzf "$archive" mcp-publisher
+          ./mcp-publisher --version
+
+      - name: Authenticate to MCP Registry (GitHub OIDC)
+        run: ./mcp-publisher login github-oidc
+
+      - name: Validate server.json
+        run: ./mcp-publisher validate ./server.json
+
+      - name: Publish server to MCP Registry
+        run: ./mcp-publisher publish ./server.json
+
+      - name: Print result
+        if: always()
+        run: |
+          echo "job status: ${{ job.status }}"
+          echo "--- public registry lookup ---"
+          curl -sS "https://registry.modelcontextprotocol.io/v0/servers?search=io.github.haidi-ai%2Fznk-mcp" || true
